@@ -1,3 +1,7 @@
+Most recurrent update:
+2018.9.21 - fix some bugs in /datasets
+
+
 # DeepLabv3plus Semantic Segmentation in Pytorch
 
 Here is a pytorch implementation of deeplabv3+. The project supports COCO object detection dataset pretrain(transform to segmentation manually) and PASCAL VOC 2012 train/val. SynchronizedBatchNorm(from [vacancy](https://github.com/vacancy/Synchronized-BatchNorm-PyTorch)) has been used in modified ResNet backbone. Now the project achieve 79.161% on VOC2012 validation set with resnet101 and pretrained on COCO.
