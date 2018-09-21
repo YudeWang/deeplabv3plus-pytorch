@@ -38,7 +38,7 @@ class ADE20KDataset(Dataset):
             self.odgt = os.path.join(self.root_dir,'ADEChallengeData2016','train.odgt')
             if cfg.DATA_RANDOMCROP > 0:
                 self.randomcrop = RandomCrop(cfg.DATA_RANDOMCROP)
-            if cfg.DATA_RANDOMROTATION > 0 or cfg.DATA_RANDOMSCALE > 0:
+            if cfg.DATA_RANDOMROTATION > 0 or cfg.DATA_RANDOMSCALE != 1:
                 self.randomrotation = RandomRotation(cfg.DATA_RANDOMROTATION, cfg.DATA_RANDOMSCALE)
             if cfg.DATA_RANDOMFLIP > 0:
                 self.randomflip = RandomFlip(cfg.DATA_RANDOMFLIP)

@@ -126,33 +126,19 @@ class RandomFlip(object):
 
 class RandomRotation(object):
     """Randomly rotate image"""
-    def __init__(self, angle_r):
+    def __init__(self, angle_r, scale_r):
         self.angle_r = angle_r
+	self.scale_r = scale_r
 
     def __call__(self, sample):
         image, segmentation = sample['image'], sample['segmentation']
         row, col, _ = image.shape
         rand_angle = np.random.randint(-self.angle_r, self.angle_r) if self.angle_r != 0 else 0
-        m = cv2.getRotationMatrix2D(center=(col/2, row/2), angle=rand_angle, scale=1)
+        m = cv2.getRotationMatrix2D(center=(col/2, row/2), angle=rand_angle, scale=self.scale_r)
         new_image = cv2.warpAffine(image, m, (col,row), flags=cv2.INTER_CUBIC, borderValue=0)
         new_segmentation = cv2.warpAffine(segmentation, m, (col,row), flags=cv2.INTER_NEAREST, borderValue=0)
         sample['image'] = new_image
         sample['segmentation'] = new_segmentation
-        return sample
-
-class RandomScale(object):
-    """Randomly scale image"""
-    def __init__(self, scale_r):
-        self.scale_r = scale_r
-
-    def __call__(self, sample):
-        image, segmentation = sample['image'], sample['segmentation']
-        row, col, _ = image.shape
-        rand_scale = np.random.rand()*(self.scale_r - 1/self.scale_r) + 1/self.scale_r
-        img = cv2.resize(image, None, fx=rand_scale, fy=rand_scale, interpolation=cv2.INTER_CUBIC)
-        seg = cv2.resize(segmentation, None, fx=rand_scale, fy=rand_scale, interpolation=cv2.INTER_NEAREST)
-        sample['image'] = img
-        sample['segmentation'] = seg
         return sample
 
 class ToTensor(object):
