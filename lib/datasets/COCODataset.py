@@ -28,6 +28,7 @@ class COCODataset(Dataset):
         self.randomcrop = None
         self.randomflip = None
         self.randomrotation = None
+        self.randomscale = None
         self.randomhsv = None
         self.totensor = ToTensor()
 	
@@ -37,12 +38,14 @@ class COCODataset(Dataset):
         self.catIds = self.coco.getCatIds()
 
         if cfg.DATA_RESCALE > 0:
-            self.rescale = Rescale((cfg.DATA_RESCALE,cfg.DATA_RESCALE))
+            self.rescale = Rescale(cfg.DATA_RESCALE)
         if self.period == 'train':        
             if cfg.DATA_RANDOMCROP > 0:
                 self.randomcrop = RandomCrop(cfg.DATA_RANDOMCROP)
-            if cfg.DATA_RANDOMROTATION > 0 or cfg.DATA_RANDOMSCALE > 0:
-                self.randomrotation = RandomRotation(cfg.DATA_RANDOMROTATION, cfg.DATA_RANDOMSCALE)
+            if cfg.DATA_RANDOMROTATION > 0:
+                self.randomrotation = RandomRotation(cfg.DATA_RANDOMROTATION)
+            if cfg.DATA_RANDOMSCALE != 1:
+                self.randomscale = RandomScale(cfg.DATA_RANDOMSCALE)
             if cfg.DATA_RANDOMFLIP > 0:
                 self.randomflip = RandomFlip(cfg.DATA_RANDOMFLIP)
             if cfg.DATA_RANDOM_H > 0 or cfg.DATA_RANDOM_S > 0 or cfg.DATA_RANDOM_V > 0:
@@ -86,8 +89,10 @@ class COCODataset(Dataset):
                 sample = self.randomhsv(sample)
             if self.cfg.DATA_RANDOMFLIP > 0:
                 sample = self.randomflip(sample)
-            if self.cfg.DATA_RANDOMROTATION > 0 or self.cfg.DATA_RANDOMSCALE != 1:
+            if self.cfg.DATA_RANDOMROTATION > 0:
                 sample = self.randomrotation(sample)
+            if self.cfg.DATA_RANDOMSCALE != 1:
+                sample = self.randomscale(sample)
             if self.cfg.DATA_RANDOMCROP > 0:
                 sample = self.randomcrop(sample)
 
