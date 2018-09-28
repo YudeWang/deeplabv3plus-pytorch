@@ -1,5 +1,6 @@
 Most recurrent update:
-2018.9.21 - fix some bugs in /datasets
+2018.9.28 - add python evaluation func in ./lib/datasets/VOCDataset.py
+2018.9.21 - fix some bugs in ./lib/datasets
 
 
 # DeepLabv3plus Semantic Segmentation in Pytorch
