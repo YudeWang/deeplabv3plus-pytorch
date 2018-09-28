@@ -7,6 +7,7 @@ import os
 import torch
 import pandas as pd
 import cv2
+import multiprocessing
 from skimage import io
 from PIL import Image
 import numpy as np
@@ -209,6 +210,61 @@ class VOCDataset(Dataset):
         print('start subprocess for matlab evaluation...')
         print(cmd)
         subprocess.call(cmd, shell=True)
+
+    def do_python_eval(self, model_id):
+        predict_folder = os.path.join(self.rst_dir,'%s_%s_cls'%(model_id,self.period))
+        gt_folder = self.seg_dir
+        TP = []
+        P = []
+        T = []
+        for i in range(self.cfg.MODEL_NUM_CLASSES):
+            TP.append(multiprocessing.Value('i', 0, lock=True))
+            P.append(multiprocessing.Value('i', 0, lock=True))
+            T.append(multiprocessing.Value('i', 0, lock=True))
+        
+        def compare(start,step,TP,P,T):
+            for idx in range(start,len(self.name_list),step):
+                print('%d/%d'%(idx,len(self.name_list)))
+                name = self.name_list[idx]
+                predict_file = os.path.join(predict_folder,'%s.png'%name)
+                gt_file = os.path.join(gt_folder,'%s.png'%name)
+                predict = np.array(Image.open(predict_file)) #cv2.imread(predict_file)
+                gt = np.array(Image.open(gt_file))
+                cal = gt<255
+                mask = (predict==gt) * cal
+          
+                for i in range(self.cfg.MODEL_NUM_CLASSES):
+                    P[i].acquire()
+                    P[i].value += np.sum((predict==i)*cal)
+                    P[i].release()
+                    T[i].acquire()
+                    T[i].value += np.sum((gt==i)*cal)
+                    T[i].release()
+                    TP[i].acquire()
+                    TP[i].value += np.sum((gt==i)*mask)
+                    TP[i].release()
+        p_list = []
+        for i in range(8):
+            p = multiprocessing.Process(target=compare, args=(i,8,TP,P,T))
+            p.start()
+            p_list.append(p)
+        for p in p_list:
+            p.join()
+        IoU = []
+        for i in range(self.cfg.MODEL_NUM_CLASSES):
+            IoU.append(TP[i].value/(T[i].value+P[i].value-TP[i].value+1e-10))
+        for i in range(self.cfg.MODEL_NUM_CLASSES):
+            if i == 0:
+                print('%11s:%7.3f%%'%('backbound',IoU[i]*100),end='\t')
+            else:
+                if i%2 != 1:
+                    print('%11s:%7.3f%%'%(self.categories[i-1],IoU[i]*100),end='\t')
+                else:
+                    print('%11s:%7.3f%%'%(self.categories[i-1],IoU[i]*100))
+                    
+        miou = np.mean(np.array(IoU))
+        print('\n======================================================')
+        print('%11s:%7.3f%%'%('mIoU',miou*100))  
 
     def __coco2voc(self, m):
         r,c = m.shape
