@@ -17,9 +17,9 @@ import torch.optim as optim
 from PIL import Image
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
-
+from net.loss import MaskCrossEntropyLoss, MaskBCELoss, MaskBCEWithLogitsLoss
 def train_net():
-	dataset = generate_dataset(cfg.DATA_NAME, cfg, 'train')
+	dataset = generate_dataset(cfg.DATA_NAME, cfg, 'train', cfg.DATA_AUG)
 	dataloader = DataLoader(dataset, 
 				batch_size=cfg.TRAIN_BATCHES, 
 				shuffle=cfg.TRAIN_SHUFFLE, 
@@ -36,37 +36,40 @@ def train_net():
 
 	print('Use %d GPU'%cfg.TRAIN_GPUS)
 	device = torch.device(0)
-	print('module to device')
-	net.to(device)		
-	print('module parallel')
 	if cfg.TRAIN_GPUS > 1:
 		net = nn.DataParallel(net)
-	print('load pretrained parameters')
+	net.to(device)		
+
 	if cfg.TRAIN_CKPT:
-		net.load_state_dict(torch.load(cfg.TRAIN_CKPT))
-	print('initialize others')
+		pretrained_dict = torch.load(cfg.TRAIN_CKPT)
+		net_dict = net.state_dict()
+		pretrained_dict = {k: v for k, v in pretrained_dict.items() if (k in net_dict) and (v.shape==net_dict[k].shape)}
+		net_dict.update(pretrained_dict)
+		net.load_state_dict(net_dict)
+		# net.load_state_dict(torch.load(cfg.TRAIN_CKPT),False)
+	
 	criterion = nn.CrossEntropyLoss()
-	optimizer = optim.SGD(net.parameters(), lr=cfg.TRAIN_LR, momentum=cfg.TRAIN_MOMENTUM)
-#	optimizer = nn.DataParallel(optimizer)
-	# scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=cfg.TRAIN_LR_MST, gamma=cfg.TRAIN_LR_GAMMA, last_epoch=-1)
+	optimizer = optim.SGD(net.parameters(), lr=cfg.TRAIN_LR, momentum=cfg.TRAIN_MOMENTUM, weight_decay=cfg.TRAIN_WEIGHT_DECAY)
+	#scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=cfg.TRAIN_LR_MST, gamma=cfg.TRAIN_LR_GAMMA, last_epoch=-1)
 	itr = cfg.TRAIN_MINEPOCH * len(dataloader)
 	max_itr = cfg.TRAIN_EPOCHS*len(dataloader)
 	running_loss = 0.0
 	tblogger = SummaryWriter(cfg.LOG_DIR)
 
 	for epoch in range(cfg.TRAIN_MINEPOCH, cfg.TRAIN_EPOCHS):
-		# scheduler.step()
-		# now_lr = scheduler.get_lr()
+		#scheduler.step()
+		#now_lr = scheduler.get_lr()
 		for i_batch, sample_batched in enumerate(dataloader):
+			now_lr = adjust_lr(optimizer, itr, max_itr)
 			inputs_batched, labels_batched = sample_batched['image'], sample_batched['segmentation']
-			labels_batched = labels_batched.long().to(1)
 			optimizer.zero_grad()
-			#inputs_batched.to(0)
-			predicts_batched = net(inputs_batched).to(1)
+			labels_batched = labels_batched.long().to(1)
+			#0foreground_pix = (torch.sum(labels_batched!=0).float()+1)/(cfg.DATA_RESCALE**2*cfg.TRAIN_BATCHES)
+			predicts_batched = net(inputs_batched)
+			predicts_batched = predicts_batched.to(1) 
 			loss = criterion(predicts_batched, labels_batched)
 
 			loss.backward()
-			now_lr = adjust_lr(optimizer, itr, max_itr)
 			optimizer.step()
 
 			running_loss += loss.item()
@@ -75,27 +78,31 @@ def train_net():
 				(epoch, cfg.TRAIN_EPOCHS, i_batch, dataset.__len__()//cfg.TRAIN_BATCHES,
 				itr+1, now_lr, running_loss))
 			if cfg.TRAIN_TBLOG and itr%100 == 0:
-				inputs = inputs_batched.numpy()[0]/2.0 + 0.5
+				#inputs = np.array((inputs_batched[0]*128+128).numpy().transpose((1,2,0)),dtype=np.uint8)
+				inputs = inputs_batched.numpy()[0]
+				#inputs = inputs_batched.numpy()[0]/2.0 + 0.5
 				labels = labels_batched[0].cpu().numpy()
 				labels_color = dataset.label2colormap(labels).transpose((2,0,1))
 				predicts = torch.argmax(predicts_batched[0],dim=0).cpu().numpy()
-				predicts_color = dataset.label2colormap(predicts).transpose((2,0,1))				
+				predicts_color = dataset.label2colormap(predicts).transpose((2,0,1))
+				pix_acc = np.sum(labels==predicts)/(cfg.DATA_RESCALE**2)
 
 				tblogger.add_scalar('loss', running_loss, itr)
 				tblogger.add_scalar('lr', now_lr, itr)
+				tblogger.add_scalar('pixel acc', pix_acc, itr)
 				tblogger.add_image('Input', inputs, itr)
 				tblogger.add_image('Label', labels_color, itr)
 				tblogger.add_image('Output', predicts_color, itr)
 			running_loss = 0.0
 			
-			if itr % 5000 == 4999:
-				save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_itr%d.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME,itr+1))
+			if itr % 5000 == 0:
+				save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_itr%d.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME,itr))
 				torch.save(net.state_dict(), save_path)
 				print('%s has been saved'%save_path)
 
 			itr += 1
 		
-	save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_all.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME))		
+	save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_epoch%d_all.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME,cfg.TRAIN_EPOCHS))		
 	torch.save(net.state_dict(),save_path)
 	if cfg.TRAIN_TBLOG:
 		tblogger.close()

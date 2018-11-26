@@ -24,11 +24,11 @@ class BasicBlock(nn.Module):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride, atrous)
         #self.bn1 = nn.BatchNorm2d(planes)
-        self.bn1 = SynchronizedBatchNorm2d(planes)
+        self.bn1 = SynchronizedBatchNorm2d(planes, momentum=0.0003)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
         #self.bn2 = nn.BatchNorm2d(planes)
-        self.bn2 = SynchronizedBatchNorm2d(planes)
+        self.bn2 = SynchronizedBatchNorm2d(planes, momentum=0.0003)
         self.downsample = downsample
         self.stride = stride
 
@@ -58,14 +58,14 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         #self.bn1 = nn.BatchNorm2d(planes)
-        self.bn1 = SynchronizedBatchNorm2d(planes)
+        self.bn1 = SynchronizedBatchNorm2d(planes, momentum=0.0003)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
                                padding=1*atrous, dilation=atrous, bias=False)
         #self.bn2 = nn.BatchNorm2d(planes)
-        self.bn2 = SynchronizedBatchNorm2d(planes)
+        self.bn2 = SynchronizedBatchNorm2d(planes, momentum=0.0003)
         self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1, bias=False)
         # self.bn3 = nn.BatchNorm2d(planes * self.expansion)
-        self.bn3 = SynchronizedBatchNorm2d(planes * self.expansion)
+        self.bn3 = SynchronizedBatchNorm2d(planes * self.expansion, momentum=0.0003)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
@@ -95,28 +95,40 @@ class Bottleneck(nn.Module):
 
 class ResNet_Atrous(nn.Module):
 
-    def __init__(self, block, layers, atrous=None, num_classes=1000):
+    def __init__(self, block, layers, atrous=None, os=16):
         super(ResNet_Atrous, self).__init__()
+        stride_list = None
+        if os == 8:
+            stride_list = [2,1,1]
+        elif os == 16:
+            stride_list = [2,2,1]
+        else:
+            raise ValueError('resnet_atrous.py: output stride=%d is not supported.'%os) 
+            
         self.inplanes = 64
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
-        #self.bn1 = nn.BatchNorm2d(64)
-        self.bn1 = SynchronizedBatchNorm2d(64)
+#        self.conv1 =  nn.Sequential(
+#                          nn.Conv2d(3,64,kernel_size=3, stride=2, padding=1),
+#                          nn.Conv2d(64,64,kernel_size=3, stride=1, padding=1),
+#                          nn.Conv2d(64,64,kernel_size=3, stride=1, padding=1),
+#                      )
+        self.bn1 = SynchronizedBatchNorm2d(64, momentum=0.0003)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, 64, layers[0])
-        self.layer2 = self._make_layer(block, 256, 128, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 512, 256, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 1024, 512, layers[3], stride=1, atrous=atrous)
-        self.layer5 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=atrous)
-        self.layer6 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=atrous)
-        self.layer7 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=atrous)
+        self.layer2 = self._make_layer(block, 256, 128, layers[1], stride=stride_list[0])
+        self.layer3 = self._make_layer(block, 512, 256, layers[2], stride=stride_list[1], atrous=16//os)
+        self.layer4 = self._make_layer(block, 1024, 512, layers[3], stride=stride_list[2], atrous=[item*16//os for item in atrous])
+        self.layer5 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
+        self.layer6 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
+        self.layer7 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
         self.layers = []
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
+            elif isinstance(m, SynchronizedBatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
@@ -127,11 +139,14 @@ class ResNet_Atrous(nn.Module):
         downsample = None
         if atrous == None:
             atrous = [1]*blocks
+        elif isinstance(atrous, int):
+            atrous_list = [atrous]*blocks
+            atrous = atrous_list
         if stride != 1 or inplanes != planes*block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(inplanes, planes * block.expansion,
                           kernel_size=1, stride=stride, dilation=atrous[0], bias=False),
-                nn.BatchNorm2d(planes * block.expansion),
+                SynchronizedBatchNorm2d(planes * block.expansion, momentum=0.0003),
             )
 
         layers = []
@@ -162,9 +177,9 @@ class ResNet_Atrous(nn.Module):
 
         return x
 
-def resnet50_atrous(pretrained=True, **kwargs):
+def resnet50_atrous(pretrained=True, os=16, **kwargs):
     """Constructs a atrous ResNet-50 model."""
-    model = ResNet_Atrous(Bottleneck, [3, 4, 6, 3], atrous=[1,2,1], **kwargs)
+    model = ResNet_Atrous(Bottleneck, [3, 4, 6, 3], atrous=[1,2,1], os=os, **kwargs)
     if pretrained:
         old_dict = model_zoo.load_url(model_urls['resnet50'])
         model_dict = model.state_dict()
@@ -174,9 +189,9 @@ def resnet50_atrous(pretrained=True, **kwargs):
     return model
 
 
-def resnet101_atrous(pretrained=True, **kwargs):
+def resnet101_atrous(pretrained=True, os=16, **kwargs):
     """Constructs a atrous ResNet-101 model."""
-    model = ResNet_Atrous(Bottleneck, [3, 4, 23, 3], atrous=[1,2,1], **kwargs)
+    model = ResNet_Atrous(Bottleneck, [3, 4, 23, 3], atrous=[1,2,1], os=os, **kwargs)
     if pretrained:
         old_dict = model_zoo.load_url(model_urls['resnet101'])
         model_dict = model.state_dict()
@@ -186,9 +201,9 @@ def resnet101_atrous(pretrained=True, **kwargs):
     return model
 
 
-def resnet152_atrous(pretrained=True, **kwargs):
+def resnet152_atrous(pretrained=True, os=16, **kwargs):
     """Constructs a atrous ResNet-152 model."""
-    model = ResNet_Atrous(Bottleneck, [3, 8, 36, 3], atrous=[1,2,1], **kwargs)
+    model = ResNet_Atrous(Bottleneck, [3, 8, 36, 3], atrous=[1,2,1], os=os, **kwargs)
     if pretrained:
         old_dict = model_zoo.load_url(model_urls['resnet152'])
         model_dict = model.state_dict()

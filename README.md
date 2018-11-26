@@ -1,12 +1,15 @@
 Most recurrent update:
 
-2018.9.28 - add python evaluation func in ./lib/datasets/VOCDataset.py
+2018.11.26 - Update including support Xception network, multi-scale test, network output stride modification, pure train set finetuning, and more dataset interface (PASCAL Context, Cityscapes, ADE20K)  
 
-2018.9.21 - fix some bugs in ./lib/datasets
+2018.09.28 - Add python evaluation func in ./lib/datasets/VOCDataset.py
+
+2018.09.21 - Fix some bugs in ./lib/datasets
 
 # DeepLabv3plus Semantic Segmentation in Pytorch
 
-Here is a pytorch implementation of deeplabv3+. The project supports COCO object detection dataset pretrain(transform to segmentation manually) and PASCAL VOC 2012 train/val. SynchronizedBatchNorm(from [vacancy](https://github.com/vacancy/Synchronized-BatchNorm-PyTorch)) has been used in modified ResNet backbone. Now the project achieve 79.161% on VOC2012 validation set with resnet101 and pretrained on COCO.
+Here is a pytorch implementation of deeplabv3+. The project support variants of dataset including MS COCO object detection dataset, PASCAL VOC, PASCAL Context, Cityscapes, ADE20K. 
+
 
 ## Configuration Environment
 
@@ -18,30 +21,45 @@ Anaconda virtual environment is suggested.
 
 Please install [tensorboardX](https://github.com/lanpa/tensorboardX) for loss curves and segmentation visualization. 
 
+SynchronizedBatchNorm(from [vacancy](https://github.com/vacancy/Synchronized-BatchNorm-PyTorch)) has been used in our model, which will not be installed manually.
+
 ## Dataset
 1. Download VOC2012 dataset and VOCdevkit, keep the VOC2012 folder in VOCdevkit as $root/data/VOCdevkit/VOC2012/...., or you can modified path in `$root/lib/datasets/VOCDataset.py`
 
-2. Download VOC augmented segmentation dataset from [DrSleep](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0). Put the annotations in $root/data/VOCdevkit/VOC2012/SegmentationClass/ and replace training set file `$root/data/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt`
+2. Download VOC augmented segmentation dataset from [DrSleep](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0). Put the annotations in $root/data/VOCdevkit/VOC2012/SegmentationClass/ and name list file at `$root/data/VOCdevkit/VOC2012/ImageSets/Segmentation/trainaug.txt`
 
 3. Download COCO2017 object detection dataset [here](http://cocodataset.org/#download) for pretrain, keep the path as $root/data/MSCOCO/...., or change it in`$root/lib/datasets/COCODataset.py`
 
 4. Install Matlab for VOC2012 evaluation(we use VOC official matlab evaluation code in VOCdevkit)
 
-5. (optional) You can also download [ADE20K dataset](http://sceneparsing.csail.mit.edu/) as same as VOC and COCO, but ADE20K dataset interface has not been finished yet.
+5. (optional) You can also download [ADE20K dataset](http://sceneparsing.csail.mit.edu/), [Cityscapes](https://www.cityscapes-dataset.com), [PASCAL Context](https://cs.stanford.edu/~roozbeh/pascal-context/) as same as VOC and COCO, check the dataset path setting in `$root/lib/datasets/xxxDataset.py`.
 
 ## Network
 
-Download COCO pretrained network parameter [here](https://drive.google.com/open?id=1nuEAm9JPT3J7MEqLYfWG7TiVQba5W223) and VOC2012 augmented dataset finetuned parameter [here](https://drive.google.com/open?id=1QM7R845GOo0T10fbqdzrOPhQep2ttDoy). Place them in $root/model/...
+Now the project support modified ResNet and Xception network as backbone. 
 
-We download imagenet pretrained models by URLs when load them.  
+For ResNet backbone, the structure is modified according to [2] which repeats layer4 four times with atrous rate as 1,2,1. We load part of ResNet parameters from pytorch pretrained model and random initialize others.
 
-The backbone only support resnet at present. Though Xception has been finished, it has not been tested yet.
+As for Xception, we keep the same structure with offical tensorflow [code](https://github.com/tensorflow/models/tree/master/research/deeplab) and transform the pretrained parameter file from .ckpt to .pth manually!
 
-For ResNet backbone, the structure is modified according to [2] which repeats layer4 four times with atrous rate as 1,2,1
+Now the best model achieve 81.937% on VOC2012 validation set with Xception, output stride=16, multi-scale and flip test, and pretrained on COCO, finetuning on VOC trainaug set and VOC train set. Discussion about finetuing tricks is welcomed by email(yude.wang@outlook.com) or issues!!!
+
+Here are some pretrained model for download(deeplabv3+ models are trained on multi GPUs, it may cause error when loading by cpu version):
+
+| Name                                                                                                       | mIoU on PASCAL VOC val set |
+|------------------------------------------------------------------------------------------------------------|----------------------------|
+| [xception_pytorch_imagnet](https://drive.google.com/open?id=1_j_mE07tiV24xXOJw4XDze0-a0NAhNVi)             |                            |
+| [xception_pytorch_coco](https://drive.google.com/open?id=1J7B1ewMSEH2yuV_Tm8dyah6ieSHbUgA-)                |                            |
+| [deeplabv3plus_xception_VOC2012_COCO](https://drive.google.com/open?id=1hE6jEWa3PVbJOI1eldARj2UWx-qWQvOm)  | 81.937%                    |
+
+
+Model checkpoint with higher performance will be updata once achieve. 
 
 ## Train & Test
 
 Please check the configuration file `$root/experiment/project_name/config.py` first to meet your requires.
+
+Please check the pretrained checkpoint path in `$root/lib/net/xception.py` and `$root/lib/net/resnet_atrous.py`
 
 Please set visible gpu devices before training.
 
@@ -71,12 +89,11 @@ python test.py
 - [x] decoder
 - [x] model pretrained on COCO
 - [x] flip test
-- [ ] xception as backbone
-- [ ] multiscale test
+- [x] xception as backbone
+- [x] multiscale test
+- [ ] achieve the performance mentioned in paper.
 
-The project achieves 79.161% on VOC2012 validation set with resnet101 and pretrained on COCO.
-
-
+Discussion about learning tricks is welcomed (yude.wang@outlook.com).
 
 ## References
 

@@ -6,7 +6,7 @@ from __future__ import print_function, division
 import os
 import json
 import torch
-from lib.utils.data import Dataset
+from torch.utils.data import Dataset
 import cv2
 from scipy.misc import imread
 import numpy as np
@@ -26,6 +26,7 @@ class ADE20KDataset(Dataset):
         self.randomcrop = None
         self.randomflip = None
         self.randomrotation = None
+        self.randomscale = None
         self.randomhsv = None
         self.totensor = ToTensor()
 
@@ -38,8 +39,10 @@ class ADE20KDataset(Dataset):
             self.odgt = os.path.join(self.root_dir,'ADEChallengeData2016','train.odgt')
             if cfg.DATA_RANDOMCROP > 0:
                 self.randomcrop = RandomCrop(cfg.DATA_RANDOMCROP)
-            if cfg.DATA_RANDOMROTATION > 0 or cfg.DATA_RANDOMSCALE != 1:
-                self.randomrotation = RandomRotation(cfg.DATA_RANDOMROTATION, cfg.DATA_RANDOMSCALE)
+            if cfg.DATA_RANDOMROTATION > 0:
+                self.randomrotation = RandomRotation(cfg.DATA_RANDOMROTATION)
+            if cfg.DATA_RANDOMSCALE != 1:
+                self.randomscale = RandomScale(cfg.DATA_RANDOMSCALE)
             if cfg.DATA_RANDOMFLIP > 0:
                 self.randomflip = RandomFlip(cfg.DATA_RANDOMFLIP)
             if cfg.DATA_RANDOM_H > 0 or cfg.DATA_RANDOM_S > 0 or cfg.DATA_RANDOM_V > 0:
@@ -60,8 +63,10 @@ class ADE20KDataset(Dataset):
         c = self.list_sample[idx]['width']
 
         name = self.list_sample[idx]['fpath_img'].replace('ADEChallengeData2016/images/','')
-        name = name.replace('train/','') if self.period == 'train'
-        name = name.replace('validation/','') if self.period == 'valid'
+        if self.period == 'train':
+            name = name.replace('train/','') 
+        if 'val' in self.period:
+            name = name.replace('validation/','') 
         assert(self.period != 'test')
         name = name.replace('.jpg','')
         
@@ -70,19 +75,21 @@ class ADE20KDataset(Dataset):
         if self.period == 'train':
             seg_path = os.path.join(self.root_dir, self.list_sample[idx]['fpath_segm'])
             seg = imread(seg_path)
-            seg[seg>=self.cfg.MODEL_NUM_CLASSES] = 0
-            seg += 1
+            #seg[seg>=self.cfg.MODEL_NUM_CLASSES] = 0
+            #seg += 1
             sample['segmentation'] = seg
-            assert(segm.ndim == 2)
-            assert(img.shape[0] == segm.shape[0])
-            assert(img.shape[1] == segm.shape[1])
+            assert(seg.ndim == 2)
+            assert(img.shape[0] == seg.shape[0])
+            assert(img.shape[1] == seg.shape[1])
 
             if self.cfg.DATA_RANDOM_H > 0 or self.cfg.DATA_RANDOM_S > 0 or self.cfg.DATA_RANDOM_V > 0:
                 sample = self.randomhsv(sample)
             if self.cfg.DATA_RANDOMFLIP > 0:
                 sample = self.randomflip(sample)
-            if self.cfg.DATA_RANDOMROTATION > 0 or self.cfg.DATA_RANDOMSCALE != 1:
+            if self.cfg.DATA_RANDOMROTATION > 0:
                 sample = self.randomrotation(sample)
+            if self.cfg.DATA_RANDOMSCALE != 1:
+                sample = self.randomscale(sample)
             if self.cfg.DATA_RANDOMCROP > 0:
                 sample = self.randomcrop(sample)
 
@@ -106,6 +113,8 @@ class ADE20KDataset(Dataset):
     def save_result(self, result_list, model_id):
         i = 1
         folder_path = os.path.join(self.rst_dir,'%s'%model_id)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
         for sample in result_list:
             file_path = os.path.join(folder_path,'%s.png'%sample['name'])
             '''
@@ -130,9 +139,11 @@ class ADE20KDataset(Dataset):
         union_meter = AverageMeter()
 
         for sample in self.list_sample:
-            name = sample['fpath_img'].replace('ADEChallengeData2016/images/')
-            name = name.replace('train/','') if self.period == 'train'
-            name = name.replace('validation/','') if self.period == 'val'
+            name = sample['fpath_img'].replace('ADEChallengeData2016/images/','')
+            if self.period == 'train':
+                name = name.replace('train/','') 
+            if 'val' in self.period:
+                name = name.replace('validation/','') 
             assert(self.period != 'test')
             name = name.replace('.jpg','')
 

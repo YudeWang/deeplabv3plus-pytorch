@@ -17,13 +17,14 @@ import torch.optim as optim
 from PIL import Image
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
-
+from net.loss import MaskCrossEntropyLoss, MaskBCELoss, MaskBCEWithLogitsLoss
 def train_net():
-	dataset = generate_dataset(cfg.DATA_NAME, cfg, 'train')
+	dataset = generate_dataset(cfg.DATA_NAME, cfg, 'train', cfg.DATA_AUG)
 	dataloader = DataLoader(dataset, 
 				batch_size=cfg.TRAIN_BATCHES, 
 				shuffle=cfg.TRAIN_SHUFFLE, 
-				num_workers=cfg.DATA_WORKERS)
+				num_workers=cfg.DATA_WORKERS,
+				drop_last=True)
 	
 	net = generate_net(cfg)
 	if cfg.TRAIN_TBLOG:
@@ -54,7 +55,7 @@ def train_net():
 	max_itr = cfg.TRAIN_EPOCHS*len(dataloader)
 	running_loss = 0.0
 	tblogger = SummaryWriter(cfg.LOG_DIR)
-
+	#net.eval()
 	for epoch in range(cfg.TRAIN_MINEPOCH, cfg.TRAIN_EPOCHS):
 		#scheduler.step()
 		#now_lr = scheduler.get_lr()
@@ -62,8 +63,10 @@ def train_net():
 			now_lr = adjust_lr(optimizer, itr, max_itr)
 			inputs_batched, labels_batched = sample_batched['image'], sample_batched['segmentation']
 			optimizer.zero_grad()
-			labels_batched = labels_batched.long().to(1) 
-			predicts_batched = net(inputs_batched).to(1)
+			labels_batched = labels_batched.long().to(1)
+			#0foreground_pix = (torch.sum(labels_batched!=0).float()+1)/(cfg.DATA_RESCALE**2*cfg.TRAIN_BATCHES)
+			predicts_batched = net(inputs_batched)
+			predicts_batched = predicts_batched.to(1) 
 			loss = criterion(predicts_batched, labels_batched)
 
 			loss.backward()
@@ -76,21 +79,24 @@ def train_net():
 				itr+1, now_lr, running_loss))
 			if cfg.TRAIN_TBLOG and itr%100 == 0:
 				#inputs = np.array((inputs_batched[0]*128+128).numpy().transpose((1,2,0)),dtype=np.uint8)
+				#inputs = inputs_batched.numpy()[0]
 				inputs = inputs_batched.numpy()[0]/2.0 + 0.5
 				labels = labels_batched[0].cpu().numpy()
 				labels_color = dataset.label2colormap(labels).transpose((2,0,1))
 				predicts = torch.argmax(predicts_batched[0],dim=0).cpu().numpy()
-				predicts_color = dataset.label2colormap(predicts).transpose((2,0,1))				
+				predicts_color = dataset.label2colormap(predicts).transpose((2,0,1))
+				pix_acc = np.sum(labels==predicts)/(cfg.DATA_RESCALE**2)
 
 				tblogger.add_scalar('loss', running_loss, itr)
 				tblogger.add_scalar('lr', now_lr, itr)
+				tblogger.add_scalar('pixel acc', pix_acc, itr)
 				tblogger.add_image('Input', inputs, itr)
 				tblogger.add_image('Label', labels_color, itr)
 				tblogger.add_image('Output', predicts_color, itr)
 			running_loss = 0.0
 			
-			if itr % 5000 == 4999:
-				save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_itr%d.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME,itr+1))
+			if itr % 5000 == 0:
+				save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_itr%d.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME,itr))
 				torch.save(net.state_dict(), save_path)
 				print('%s has been saved'%save_path)
 

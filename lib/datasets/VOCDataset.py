@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 from datasets.transform import *
 
 class VOCDataset(Dataset):
-    def __init__(self, dataset_name, cfg, period):
+    def __init__(self, dataset_name, cfg, period, aug):
         self.dataset_name = dataset_name
         self.root_dir = os.path.join(cfg.ROOT_DIR,'data','VOCdevkit')
         self.dataset_dir = os.path.join(self.root_dir,dataset_name)
@@ -26,14 +26,21 @@ class VOCDataset(Dataset):
         self.ann_dir = os.path.join(self.dataset_dir, 'Annotations')
         self.seg_dir = os.path.join(self.dataset_dir, 'SegmentationClass')
         self.set_dir = os.path.join(self.dataset_dir, 'ImageSets', 'Segmentation')
-        file_name = self.set_dir+'/'+period+'.txt'
+        file_name = None
+        if aug:
+            file_name = self.set_dir+'/'+period+'aug.txt'
+        else:
+            file_name = self.set_dir+'/'+period+'.txt'
         df = pd.read_csv(file_name, names=['filename'])
         self.name_list = df['filename'].values
         self.rescale = None
+        self.centerlize = None
         self.randomcrop = None
         self.randomflip = None
         self.randomrotation = None
+        self.randomscale = None
         self.randomhsv = None
+        self.multiscale = None
         self.totensor = ToTensor()
         self.cfg = cfg
 	
@@ -66,7 +73,7 @@ class VOCDataset(Dataset):
                              [9],
                              [44],#,46,86],
                              [6],
-                             [3,8],
+                             [3],#,8],
                              [17],
                              [62],
                              [21],
@@ -82,21 +89,26 @@ class VOCDataset(Dataset):
                              [72]]
 
             self.num_categories = len(self.categories)
-            #assert(self.num_categories+1 == self.cfg.MODEL_NUM_CLASSES)
+            assert(self.num_categories+1 == self.cfg.MODEL_NUM_CLASSES)
             self.cmap = self.__colormap(len(self.categories)+1)
 
+
         if cfg.DATA_RESCALE > 0:
-            self.rescale = Rescale((cfg.DATA_RESCALE,cfg.DATA_RESCALE))
-        if self.period == 'train':        
+            self.rescale = Rescale(cfg.DATA_RESCALE,fix=False)
+            #self.centerlize = Centerlize(cfg.DATA_RESCALE)
+        if 'train' in self.period:        
             if cfg.DATA_RANDOMCROP > 0:
                 self.randomcrop = RandomCrop(cfg.DATA_RANDOMCROP)
-            if cfg.DATA_RANDOMROTATION > 0 or cfg.DATA_RANDOMSCALE != 1:
-                self.randomrotation = RandomRotation(cfg.DATA_RANDOMROTATION,cfg.DATA_RANDOMSCALE)
+            if cfg.DATA_RANDOMROTATION > 0:
+                self.randomrotation = RandomRotation(cfg.DATA_RANDOMROTATION)
+            if cfg.DATA_RANDOMSCALE != 1:
+                self.randomscale = RandomScale(cfg.DATA_RANDOMSCALE)
             if cfg.DATA_RANDOMFLIP > 0:
                 self.randomflip = RandomFlip(cfg.DATA_RANDOMFLIP)
             if cfg.DATA_RANDOM_H > 0 or cfg.DATA_RANDOM_S > 0 or cfg.DATA_RANDOM_V > 0:
                 self.randomhsv = RandomHSV(cfg.DATA_RANDOM_H, cfg.DATA_RANDOM_S, cfg.DATA_RANDOM_V)
-        
+        else:
+            self.multiscale = Multiscale(self.cfg.TEST_MULTISCALE)
 
     def __len__(self):
         return len(self.name_list)
@@ -111,25 +123,33 @@ class VOCDataset(Dataset):
         sample = {'image': image, 'name': name, 'row': r, 'col': c}
 
         
-        if self.period == 'train':
+        if 'train' in self.period:
             seg_file = self.seg_dir + '/' + name + '.png'
             segmentation = np.array(Image.open(seg_file))
-            segmentation[segmentation>len(self.categories)] = 0
             sample['segmentation'] = segmentation
-
-            if self.cfg.DATA_RANDOM_H > 0 or self.cfg.DATA_RANDOM_S > 0 or self.cfg.DATA_RANDOM_V > 0:
+            
+            if self.cfg.DATA_RANDOM_H>0 or self.cfg.DATA_RANDOM_S>0 or self.cfg.DATA_RANDOM_V>0:
                 sample = self.randomhsv(sample)
             if self.cfg.DATA_RANDOMFLIP > 0:
                 sample = self.randomflip(sample)
-            if self.cfg.DATA_RANDOMROTATION > 0 or self.cfg.DATA_RANDOMSCALE != 1:
+            if self.cfg.DATA_RANDOMROTATION > 0:
                 sample = self.randomrotation(sample)
+            if self.cfg.DATA_RANDOMSCALE != 1:
+                sample = self.randomscale(sample)
             if self.cfg.DATA_RANDOMCROP > 0:
                 sample = self.randomcrop(sample)
+            if self.cfg.DATA_RESCALE > 0:
+                #sample = self.centerlize(sample)
+                sample = self.rescale(sample)
+        else:
+            if self.cfg.DATA_RESCALE > 0:
+                sample = self.rescale(sample)
+            sample = self.multiscale(sample)
 
-        if self.cfg.DATA_RESCALE > 0:
-            sample = self.rescale(sample)
         if 'segmentation' in sample.keys():
-            sample['segmentation_onehot'] = onehot(sample['segmentation'], self.cfg.MODEL_NUM_CLASSES)
+            sample['mask'] = sample['segmentation'] < self.cfg.MODEL_NUM_CLASSES
+            sample['segmentation'][sample['segmentation'] >= self.cfg.MODEL_NUM_CLASSES] = 0
+            sample['segmentation_onehot']=onehot(sample['segmentation'],self.cfg.MODEL_NUM_CLASSES)
         sample = self.totensor(sample)
 
         return sample
@@ -210,7 +230,7 @@ class VOCDataset(Dataset):
         print('start subprocess for matlab evaluation...')
         print(cmd)
         subprocess.call(cmd, shell=True)
-
+    
     def do_python_eval(self, model_id):
         predict_folder = os.path.join(self.rst_dir,'%s_%s_cls'%(model_id,self.period))
         gt_folder = self.seg_dir
@@ -264,7 +284,39 @@ class VOCDataset(Dataset):
                     
         miou = np.mean(np.array(IoU))
         print('\n======================================================')
-        print('%11s:%7.3f%%'%('mIoU',miou*100))  
+        print('%11s:%7.3f%%'%('mIoU',miou*100))    
+
+    #def do_python_eval(self, model_id):
+    #    predict_folder = os.path.join(self.rst_dir,'%s_%s_cls'%(model_id,self.period))
+    #    gt_folder = self.seg_dir
+    #    TP = np.zeros((self.cfg.MODEL_NUM_CLASSES), np.uint64)
+    #    P = np.zeros((self.cfg.MODEL_NUM_CLASSES), np.uint64)
+    #    T = np.zeros((self.cfg.MODEL_NUM_CLASSES), np.uint64)
+    #    for idx in range(len(self.name_list)):
+    #        print('%d/%d'%(idx,len(self.name_list)))
+    #        name = self.name_list[idx]
+    #        predict_file = os.path.join(predict_folder,'%s.png'%name)
+    #        gt_file = os.path.join(gt_folder,'%s.png'%name)
+    #        predict = cv2.imread(predict_file)
+    #        gt = cv2.imread(gt_file)
+    #        cal = gt<255
+    #        mask = (predict==gt) & cal
+    #        for i in range(self.cfg.MODEL_NUM_CLASSES):
+    #            P[i] += np.sum((predict==i)*cal)
+    #            T[i] += np.sum((gt==i)*cal)
+    #            TP[i] += np.sum((gt==i)*mask)
+    #    TP = TP.astype(np.float64)
+    #    T = T.astype(np.float64)
+    #    P = P.astype(np.float64)
+    #    IoU = TP/(T+P-TP)
+    #    for i in range(self.cfg.MODEL_NUM_CLASSES):
+    #        if i == 0:
+    #            print('%15s:%7.3f%%'%('backbound',IoU[i]*100))
+    #        else:
+    #            print('%15s:%7.3f%%'%(self.categories[i-1],IoU[i]*100))
+    #    miou = np.mean(IoU)
+    #    print('==================================')
+    #    print('%15s:%7.3f%%'%('mIoU',miou*100))
 
     def __coco2voc(self, m):
         r,c = m.shape
