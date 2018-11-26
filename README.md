@@ -30,7 +30,7 @@ SynchronizedBatchNorm(from [vacancy](https://github.com/vacancy/Synchronized-Bat
 
 3. Download COCO2017 object detection dataset [here](http://cocodataset.org/#download) for pretrain, keep the path as $root/data/MSCOCO/...., or change it in`$root/lib/datasets/COCODataset.py`
 
-4. Install Matlab for VOC2012 evaluation(we use VOC official matlab evaluation code in VOCdevkit)
+4. (optional) Install Matlab for VOC2012 evaluation (VOC official evaluation code in VOCdevkit is written by Matlab, and we have reimplement a python version)
 
 5. (optional) You can also download [ADE20K dataset](http://sceneparsing.csail.mit.edu/), [Cityscapes](https://www.cityscapes-dataset.com), [PASCAL Context](https://cs.stanford.edu/~roozbeh/pascal-context/) as same as VOC and COCO, check the dataset path setting in `$root/lib/datasets/xxxDataset.py`.
 
