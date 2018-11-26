@@ -9,7 +9,7 @@ from net.deeplabv3plus import deeplabv3plus
 # from net.EANet import EANet
 # from net.DANet import DANet
 # from net.deeplabv3plushd import deeplabv3plushd
-from net.DANethd import DANethd
+# from net.DANethd import DANethd
 def generate_net(cfg):
 	if cfg.MODEL_NAME == 'deeplabv3plus' or cfg.MODEL_NAME == 'deeplabv3+':
 		return deeplabv3plus(cfg)
