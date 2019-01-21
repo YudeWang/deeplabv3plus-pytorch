@@ -38,6 +38,7 @@ def train_net():
 	device = torch.device(0)
 	if cfg.TRAIN_GPUS > 1:
 		net = nn.DataParallel(net)
+		patch_replication_callback(net)
 	net.to(device)		
 
 	if cfg.TRAIN_CKPT:
@@ -48,8 +49,14 @@ def train_net():
 		net.load_state_dict(net_dict)
 		# net.load_state_dict(torch.load(cfg.TRAIN_CKPT),False)
 	
-	criterion = nn.CrossEntropyLoss()
-	optimizer = optim.SGD(net.parameters(), lr=cfg.TRAIN_LR, momentum=cfg.TRAIN_MOMENTUM)
+	criterion = nn.CrossEntropyLoss(ignore_index=255)
+	optimizer = optim.SGD(
+		params = [
+			{'params': get_params(net.module,key='1x'), 'lr': cfg.TRAIN_LR},
+			{'params': get_params(net.module,key='10x'), 'lr': 10*cfg.TRAIN_LR}
+		],
+		momentum=cfg.TRAIN_MOMENTUM
+	)
 	#scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=cfg.TRAIN_LR_MST, gamma=cfg.TRAIN_LR_GAMMA, last_epoch=-1)
 	itr = cfg.TRAIN_MINEPOCH * len(dataloader)
 	max_itr = cfg.TRAIN_EPOCHS*len(dataloader)
@@ -110,9 +117,20 @@ def train_net():
 
 def adjust_lr(optimizer, itr, max_itr):
 	now_lr = cfg.TRAIN_LR * (1 - itr/(max_itr+1)) ** cfg.TRAIN_POWER
-	for group in optimizer.param_groups:
-		group['lr'] = now_lr
+	optimizer.param_groups[0]['lr'] = now_lr
+	optimizer.param_groups[1]['lr'] = 10*now_lr
 	return now_lr
+
+def get_params(model, key):
+	for m in model.named_modules():
+		if key == '1x':
+			if 'backbone' in m[0] and isinstance(m[1], nn.Conv2d):
+				for p in m[1].parameters():
+					yield p
+		elif key == '10x':
+			if 'backbone' not in m[0] and isinstance(m[1], nn.Conv2d):
+				for p in m[1].parameters():
+					yield p
 
 if __name__ == '__main__':
 	train_net()

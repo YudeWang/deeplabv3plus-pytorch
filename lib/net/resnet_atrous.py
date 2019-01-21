@@ -3,6 +3,7 @@ import math
 import torch.utils.model_zoo as model_zoo
 from net.sync_batchnorm import SynchronizedBatchNorm2d
 
+bn_mom = 0.0003
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
     'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
@@ -24,11 +25,11 @@ class BasicBlock(nn.Module):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride, atrous)
         #self.bn1 = nn.BatchNorm2d(planes)
-        self.bn1 = SynchronizedBatchNorm2d(planes, momentum=0.0003)
+        self.bn1 = SynchronizedBatchNorm2d(planes, momentum=bn_mom)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
         #self.bn2 = nn.BatchNorm2d(planes)
-        self.bn2 = SynchronizedBatchNorm2d(planes, momentum=0.0003)
+        self.bn2 = SynchronizedBatchNorm2d(planes, momentum=bn_mom)
         self.downsample = downsample
         self.stride = stride
 
@@ -58,14 +59,14 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         #self.bn1 = nn.BatchNorm2d(planes)
-        self.bn1 = SynchronizedBatchNorm2d(planes, momentum=0.0003)
+        self.bn1 = SynchronizedBatchNorm2d(planes, momentum=bn_mom)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
                                padding=1*atrous, dilation=atrous, bias=False)
         #self.bn2 = nn.BatchNorm2d(planes)
-        self.bn2 = SynchronizedBatchNorm2d(planes, momentum=0.0003)
+        self.bn2 = SynchronizedBatchNorm2d(planes, momentum=bn_mom)
         self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1, bias=False)
         # self.bn3 = nn.BatchNorm2d(planes * self.expansion)
-        self.bn3 = SynchronizedBatchNorm2d(planes * self.expansion, momentum=0.0003)
+        self.bn3 = SynchronizedBatchNorm2d(planes * self.expansion, momentum=bn_mom)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
@@ -113,16 +114,16 @@ class ResNet_Atrous(nn.Module):
 #                          nn.Conv2d(64,64,kernel_size=3, stride=1, padding=1),
 #                          nn.Conv2d(64,64,kernel_size=3, stride=1, padding=1),
 #                      )
-        self.bn1 = SynchronizedBatchNorm2d(64, momentum=0.0003)
+        self.bn1 = SynchronizedBatchNorm2d(64, momentum=bn_mom)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, 64, layers[0])
         self.layer2 = self._make_layer(block, 256, 128, layers[1], stride=stride_list[0])
         self.layer3 = self._make_layer(block, 512, 256, layers[2], stride=stride_list[1], atrous=16//os)
         self.layer4 = self._make_layer(block, 1024, 512, layers[3], stride=stride_list[2], atrous=[item*16//os for item in atrous])
-        self.layer5 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
-        self.layer6 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
-        self.layer7 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
+        #self.layer5 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
+        #self.layer6 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
+        #self.layer7 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
         self.layers = []
 
         for m in self.modules():
@@ -145,8 +146,8 @@ class ResNet_Atrous(nn.Module):
         if stride != 1 or inplanes != planes*block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, dilation=atrous[0], bias=False),
-                SynchronizedBatchNorm2d(planes * block.expansion, momentum=0.0003),
+                          kernel_size=1, stride=stride, bias=False),
+                SynchronizedBatchNorm2d(planes * block.expansion, momentum=bn_mom),
             )
 
         layers = []
@@ -170,9 +171,9 @@ class ResNet_Atrous(nn.Module):
         x = self.layer3(x)
         self.layers.append(x)
         x = self.layer4(x)
-        x = self.layer5(x)
-        x = self.layer6(x)
-        x = self.layer7(x)
+        #x = self.layer5(x)
+        #x = self.layer6(x)
+        #x = self.layer7(x)
         self.layers.append(x)
 
         return x
@@ -191,7 +192,7 @@ def resnet50_atrous(pretrained=True, os=16, **kwargs):
 
 def resnet101_atrous(pretrained=True, os=16, **kwargs):
     """Constructs a atrous ResNet-101 model."""
-    model = ResNet_Atrous(Bottleneck, [3, 4, 23, 3], atrous=[1,2,1], os=os, **kwargs)
+    model = ResNet_Atrous(Bottleneck, [3, 4, 23, 3], atrous=[2,2,2], os=os, **kwargs)
     if pretrained:
         old_dict = model_zoo.load_url(model_urls['resnet101'])
         model_dict = model.state_dict()

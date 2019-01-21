@@ -3,7 +3,7 @@
 # Author : Jiayuan Mao
 # Email  : maojiayuan@gmail.com
 # Date   : 27/01/2018
-# 
+#
 # This file is part of Synchronized-BatchNorm-PyTorch.
 # https://github.com/vacancy/Synchronized-BatchNorm-PyTorch
 # Distributed under MIT License.
@@ -36,7 +36,7 @@ _MasterMessage = collections.namedtuple('_MasterMessage', ['sum', 'inv_std'])
 
 
 class _SynchronizedBatchNorm(_BatchNorm):
-    def __init__(self, num_features, eps=1e-5, momentum=0.001, affine=True):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True):
         super(_SynchronizedBatchNorm, self).__init__(num_features, eps=eps, momentum=momentum, affine=affine)
 
         self._sync_master = SyncMaster(self._data_parallel_master)
@@ -44,14 +44,6 @@ class _SynchronizedBatchNorm(_BatchNorm):
         self._is_parallel = False
         self._parallel_id = None
         self._slave_pipe = None
-
-        # customed batch norm statistics
-        self._moving_average_fraction = 1. - momentum
-        self.register_buffer('_tmp_running_mean', torch.zeros(self.num_features))
-        self.register_buffer('_tmp_running_var', torch.ones(self.num_features))
-        self.register_buffer('_running_iter', torch.ones(1))
-        self._tmp_running_mean = self.running_mean.clone() * self._running_iter
-        self._tmp_running_var = self.running_var.clone() * self._running_iter
 
     def forward(self, input):
         # If it is not parallel computation or is in evaluation mode, use PyTorch's implementation.
@@ -97,6 +89,9 @@ class _SynchronizedBatchNorm(_BatchNorm):
 
     def _data_parallel_master(self, intermediates):
         """Reduce the sum and square-sum, compute the statistics, and broadcast it."""
+
+        # Always using same "device order" makes the ReduceAdd operation faster.
+        # Thanks to:: Tete Xiao (http://tetexiao.com/)
         intermediates = sorted(intermediates, key=lambda i: i[1].sum.get_device())
 
         to_reduce = [i[1][:2] for i in intermediates]
@@ -105,7 +100,6 @@ class _SynchronizedBatchNorm(_BatchNorm):
 
         sum_size = sum([i[1].sum_size for i in intermediates])
         sum_, ssum = ReduceAddCoalesced.apply(target_gpus[0], 2, *to_reduce)
-
         mean, inv_std = self._compute_mean_std(sum_, ssum, sum_size)
 
         broadcasted = Broadcast.apply(target_gpus, mean, inv_std)
@@ -116,10 +110,6 @@ class _SynchronizedBatchNorm(_BatchNorm):
 
         return outputs
 
-    def _add_weighted(self, dest, delta, alpha=1, beta=1, bias=0):
-        """return *dest* by `dest := dest*alpha + delta*beta + bias`"""
-        return dest * alpha + delta * beta + bias
-
     def _compute_mean_std(self, sum_, ssum, size):
         """Compute the mean and standard-deviation with sum and square-sum. This method
         also maintains the moving average on the master device."""
@@ -129,12 +119,8 @@ class _SynchronizedBatchNorm(_BatchNorm):
         unbias_var = sumvar / (size - 1)
         bias_var = sumvar / size
 
-        self._tmp_running_mean = self._add_weighted(self._tmp_running_mean, mean.data, alpha=self._moving_average_fraction)
-        self._tmp_running_var = self._add_weighted(self._tmp_running_var, unbias_var.data, alpha=self._moving_average_fraction)
-        self._running_iter = self._add_weighted(self._running_iter, 1, alpha=self._moving_average_fraction)
-
-        self.running_mean = self._tmp_running_mean / self._running_iter
-        self.running_var = self._tmp_running_var / self._running_iter
+        self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean.data
+        self.running_var = (1 - self.momentum) * self.running_var + self.momentum * unbias_var.data
 
         return mean, bias_var.clamp(self.eps) ** -0.5
 
@@ -156,7 +142,7 @@ class SynchronizedBatchNorm1d(_SynchronizedBatchNorm):
     is also easy to implement, but the statistics might be inaccurate.
     Instead, in this synchronized version, the statistics will be computed
     over all training samples distributed on multiple devices.
-    
+
     Note that, for one-GPU or CPU-only case, this module behaves exactly same
     as the built-in PyTorch implementation.
 
@@ -219,7 +205,7 @@ class SynchronizedBatchNorm2d(_SynchronizedBatchNorm):
     is also easy to implement, but the statistics might be inaccurate.
     Instead, in this synchronized version, the statistics will be computed
     over all training samples distributed on multiple devices.
-    
+
     Note that, for one-GPU or CPU-only case, this module behaves exactly same
     as the built-in PyTorch implementation.
 
@@ -282,7 +268,7 @@ class SynchronizedBatchNorm3d(_SynchronizedBatchNorm):
     is also easy to implement, but the statistics might be inaccurate.
     Instead, in this synchronized version, the statistics will be computed
     over all training samples distributed on multiple devices.
-    
+
     Note that, for one-GPU or CPU-only case, this module behaves exactly same
     as the built-in PyTorch implementation.
 

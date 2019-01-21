@@ -10,7 +10,7 @@ import time
 
 class Configuration():
 	def __init__(self):
-		self.ROOT_DIR = '/data/c/wangyude/project/segmentation'
+		self.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname("__file__"),'..','..'))
 		self.EXP_NAME = 'deeplabv3+vocfinetuning'
 
 		self.DATA_NAME = 'VOC2012'
@@ -26,7 +26,7 @@ class Configuration():
 		self.DATA_RANDOMFLIP = 0.5
 		
 		self.MODEL_NAME = 'deeplabv3plus'
-		self.MODEL_BACKBONE = 'xception'
+		self.MODEL_BACKBONE = 'res101_atrous'
 		self.MODEL_OUTPUT_STRIDE = 16
 		self.MODEL_ASPP_OUTDIM = 256
 		self.MODEL_SHORTCUT_DIM = 48
@@ -46,13 +46,13 @@ class Configuration():
 		self.TRAIN_EPOCHS = 60
 		self.TRAIN_LOSS_LAMBDA = 0
 		self.TRAIN_TBLOG = True
-		self.TRAIN_CKPT = '/data/c/wangyude/project/segmentation/model/deeplabv3+voc/deeplabv3plus_xception_VOC2012_epoch46_all.pth'
+		self.TRAIN_CKPT = os.path.join(self.ROOT_DIR,'model/deeplabv3+voc/deeplabv3plus_res101_atrous_VOC2012_epoch46_all.pth')
 
 		self.LOG_DIR = os.path.join(self.ROOT_DIR,'log',self.EXP_NAME)
 
-		self.TEST_MULTISCALE = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
-		self.TEST_FLIP = True
-		self.TEST_CKPT = '/data/c/wangyude/project/segmentation/model/deeplabv3+vocfinetuning/deeplabv3plus_xception_VOC2012_epoch60_all.pth'
+		self.TEST_MULTISCALE = [1.0]#[0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+		self.TEST_FLIP = False#True
+		self.TEST_CKPT = os.path.join(self.ROOT_DIR,'model/deeplabv3+vocfinetuning/deeplabv3plus_res101_atrous_VOC2012_epoch60_all.pth')
 		self.TEST_GPUS = 4
 		self.TEST_BATCHES = 16	
 

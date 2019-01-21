@@ -1,4 +1,5 @@
 Most recurrent update:
+2019.01.21 - Updata the code for paper performance achieved! Now deeplabv3+res101 achieve 79.155% and deeplabv3+xception achieve 79.945% on PASCAL VOC 2012 val set. The main bug is the missing of `patch_replication_callback()` function of Synchronized Batch Normalization.
 
 2018.11.26 - Update including support Xception network, multi-scale test, network output stride modification, pure train set finetuning, and more dataset interface (PASCAL Context, Cityscapes, ADE20K)  
 
@@ -38,19 +39,21 @@ SynchronizedBatchNorm(from [vacancy](https://github.com/vacancy/Synchronized-Bat
 
 Now the project support modified ResNet and Xception network as backbone. 
 
-For ResNet backbone, the structure is modified according to [2] which repeats layer4 four times with atrous rate as 1,2,1. We load part of ResNet parameters from pytorch pretrained model and random initialize others.
+For ResNet backbone, the structure change the dilation of layer4 as [2,2,2].
 
 As for Xception, we keep the same structure with offical tensorflow [code](https://github.com/tensorflow/models/tree/master/research/deeplab) and transform the pretrained parameter file from .ckpt to .pth manually!
 
-Now the best model achieve 81.937% on VOC2012 validation set with Xception, output stride=16, multi-scale and flip test, and pretrained on COCO, finetuning on VOC trainaug set and VOC train set. Discussion about finetuing tricks is welcomed by email(yude.wang@outlook.com) or issues!!!
+Now ResNet101 and Xception achieve paper performance without multi-scale and filp test and finetuning on VOC2012aug dataset. The models with different setting will be released once paper performance is achieved. You can also finetuing the model by yourself where COCO dataset inferface has already be released. Discussion about finetuing tricks is welcomed by email(yude.wang@outlook.com) or issues!!!
 
-Here are some pretrained model for download(deeplabv3+ models are trained on multi GPUs, it may cause error when loading by cpu version):
+Here are some pretrained model for download, the performance is evaluated on PASCAL VOC 2012 val set. (deeplabv3+ models are trained on multi GPUs, it may cause error when loading by cpu version):
 
-| Name                                                                                                       | mIoU on PASCAL VOC val set |
-|------------------------------------------------------------------------------------------------------------|----------------------------|
-| [xception_pytorch_imagnet](https://drive.google.com/open?id=1_j_mE07tiV24xXOJw4XDze0-a0NAhNVi)             |                            |
-| [xception_pytorch_coco](https://drive.google.com/open?id=1J7B1ewMSEH2yuV_Tm8dyah6ieSHbUgA-)                |                            |
-| [deeplabv3plus_xception_VOC2012_COCO](https://drive.google.com/open?id=1hE6jEWa3PVbJOI1eldARj2UWx-qWQvOm)  | 81.937%                    |
+| backbone | output stride | multi-scale & flip test | paper performance(mIoU) | our performance(mIoU) |
+|----------|---------------|-------------------------|-------------------------|-----------------------|
+| [xception_pytorch_imagnet](https://drive.google.com/open?id=1_j_mE07tiV24xXOJw4XDze0-a0NAhNVi) | | | |
+| [deeplabv3+res101](https://drive.google.com/open?id=1jSfvNDa60Kq5_KhoUuTKEQX-QbW4RCzn) | 16 | False | 78.85% | 79.155% |
+|                   | 16 | True | 80.22% | 79.916% |
+| [deeplabv3+xception](https://drive.google.com/open?id=11lgslZ4ayeYZTUQ99Ccu5hpgAWzfLPqj) | 16 | False | 79.93% | 79.945% |
+|                   | 16 | True | 81.44% | 81.087% |
 
 
 Model checkpoint with higher performance will be updata once achieve. 
@@ -64,7 +67,7 @@ Please check the pretrained checkpoint path in `$root/lib/net/xception.py` and `
 Please set visible gpu devices before training.
 
 ```
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 ``` 
 
 Then you can train the network as you wish.
@@ -87,11 +90,11 @@ python test.py
 - [x] multi-gpu support
 - [x] synchronized batch normalization
 - [x] decoder
-- [x] model pretrained on COCO
+- [ ] model pretrained on COCO
 - [x] flip test
 - [x] xception as backbone
 - [x] multiscale test
-- [ ] achieve the performance mentioned in paper.
+- [x] achieve the performance mentioned in paper.
 
 Discussion about learning tricks is welcomed (yude.wang@outlook.com).
 

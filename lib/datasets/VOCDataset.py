@@ -148,8 +148,9 @@ class VOCDataset(Dataset):
 
         if 'segmentation' in sample.keys():
             sample['mask'] = sample['segmentation'] < self.cfg.MODEL_NUM_CLASSES
-            sample['segmentation'][sample['segmentation'] >= self.cfg.MODEL_NUM_CLASSES] = 0
-            sample['segmentation_onehot']=onehot(sample['segmentation'],self.cfg.MODEL_NUM_CLASSES)
+            t = sample['segmentation']
+            t[t >= self.cfg.MODEL_NUM_CLASSES] = 0
+            sample['segmentation_onehot']=onehot(t,self.cfg.MODEL_NUM_CLASSES)
         sample = self.totensor(sample)
 
         return sample

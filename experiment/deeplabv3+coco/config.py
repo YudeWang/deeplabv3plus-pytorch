@@ -10,7 +10,7 @@ import time
 
 class Configuration():
 	def __init__(self):
-		self.ROOT_DIR = '/data/c/wangyude/project/segmentation'
+		self.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname("__file__"),'..','..'))
 		self.EXP_NAME = 'deeplabv3+coco'
 
 		self.DATA_NAME = 'COCO2017'
@@ -46,13 +46,13 @@ class Configuration():
 		self.TRAIN_EPOCHS = 30
 		self.TRAIN_LOSS_LAMBDA = 0
 		self.TRAIN_TBLOG = True
-		self.TRAIN_CKPT = None#'/home/wangyude/project/segmentation/model/danetvoc/DANet_xception_VOC2012_epoch60_all.pth'
+		self.TRAIN_CKPT = None#os.path.join(self.ROOT_DIR,'model/danetvoc/DANet_xception_VOC2012_epoch60_all.pth')
 
 		self.LOG_DIR = os.path.join(self.ROOT_DIR,'log',self.EXP_NAME)
 
 		self.TEST_MULTISCALE = [1.0]#[0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
 		self.TEST_FLIP = False
-		self.TEST_CKPT = None#'/data/c/wangyude/project/segmentation/model/danetvoc/DANet_xception_VOC2012_epoch60_all.pth'
+		self.TEST_CKPT = None#os.path.join(self.ROOT_DIR,'model/danetvoc/DANet_xception_VOC2012_epoch60_all.pth')
 		self.TEST_GPUS = 2
 		self.TEST_BATCHES = 8		
 

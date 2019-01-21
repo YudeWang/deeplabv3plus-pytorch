@@ -34,6 +34,7 @@ def test_net():
 	device = torch.device('cuda')
 	if cfg.TEST_GPUS > 1:
 		net = nn.DataParallel(net)
+		patch_replication_callback(net)
 	net.to(device)
 
 	print('start loading model %s'%cfg.TEST_CKPT)

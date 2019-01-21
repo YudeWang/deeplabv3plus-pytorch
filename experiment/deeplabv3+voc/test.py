@@ -13,7 +13,7 @@ from config import cfg
 from datasets.generateData import generate_dataset
 from net.generateNet import generate_net
 import torch.optim as optim
-
+from net.sync_batchnorm.replicate import patch_replication_callback
 
 from torch.utils.data import DataLoader
 
@@ -34,6 +34,7 @@ def test_net():
 	device = torch.device('cuda')
 	if cfg.TEST_GPUS > 1:
 		net = nn.DataParallel(net)
+		patch_replication_callback(net)
 	net.to(device)
 
 	print('start loading model %s'%cfg.TEST_CKPT)
