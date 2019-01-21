@@ -1,4 +1,5 @@
 Most recurrent update:
+
 2019.01.21 - Updata the code for paper performance achieved! Now deeplabv3+res101 achieve 79.155% and deeplabv3+xception achieve 79.945% on PASCAL VOC 2012 val set. The main bug is the missing of `patch_replication_callback()` function of Synchronized Batch Normalization.
 
 2018.11.26 - Update including support Xception network, multi-scale test, network output stride modification, pure train set finetuning, and more dataset interface (PASCAL Context, Cityscapes, ADE20K)  
