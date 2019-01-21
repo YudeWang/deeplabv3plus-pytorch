@@ -13,7 +13,7 @@ from config import cfg
 from datasets.generateData import generate_dataset
 from net.generateNet import generate_net
 import torch.optim as optim
-
+from net.sync_batchnorm.replicate import patch_replication_callback
 
 from torch.utils.data import DataLoader
 

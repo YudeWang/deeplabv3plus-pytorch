@@ -18,6 +18,7 @@ from PIL import Image
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from net.loss import MaskCrossEntropyLoss, MaskBCELoss, MaskBCEWithLogitsLoss
+from net.sync_batchnorm.replicate import patch_replication_callback
 def train_net():
 	dataset = generate_dataset(cfg.DATA_NAME, cfg, 'train', cfg.DATA_AUG)
 	dataloader = DataLoader(dataset, 
