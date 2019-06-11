@@ -33,7 +33,7 @@ SynchronizedBatchNorm (from [vacancy](https://github.com/vacancy/Synchronized-Ba
 ## Dataset
 1. Download VOC2012 dataset and VOCdevkit, keep the VOC2012 folder in VOCdevkit as `$root/data/VOCdevkit/VOC2012/....`, or you can modified path in `$root/lib/datasets/VOCDataset.py`
 
-2. Download VOC augmented segmentation dataset from [DrSleep](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0). Put the annotations in `$root/data/VOCdevkit/VOC2012/SegmentationClass/` and name list file(`trainaug.txt` provided in `/data` foler) at `$root/data/VOCdevkit/VOC2012/ImageSets/Segmentation/trainaug.txt`
+2. Download VOC augmented segmentation dataset from [DrSleep](https://www.dropbox.com/s/oeu149j8qtbs1x0/SegmentationClassAug.zip?dl=0). Put the annotations in `$root/data/VOCdevkit/VOC2012/SegmentationClass/` and name list file(`trainaug.txt` provided in `/data` folder) at `$root/data/VOCdevkit/VOC2012/ImageSets/Segmentation/trainaug.txt`
 
 3. Download COCO2017 object detection dataset [here](http://cocodataset.org/#download) for pretrain, keep the path as `$root/data/MSCOCO/....`, or change it in `$root/lib/datasets/COCODataset.py`
 
