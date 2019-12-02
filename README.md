@@ -1,8 +1,3 @@
-Considering the recent update of [GitHub and Export Controls](https://help.github.com/en/articles/github-and-export-controls), the information upload to either product may be subject to US export control laws, including U.S. Export Administration Regulations (the EAR). If the constraint affect the use of code for you, please e-mail me (yude.wang@outlook.com).
-
-由于GitHub最近更新条款，上传代码与信息皆受限于美国出口管制。如果这条禁令影响到您对代码的使用，请邮件联系我(yude.wang@outlook.com)。
-
-
 Most recurrent update:
 
 2019.01.21 - Updata the code for paper performance achieved! Now deeplabv3+res101 achieve 79.155% and deeplabv3+xception achieve 79.945% on PASCAL VOC 2012 val set. The main bug is the missing of `patch_replication_callback()` function of Synchronized Batch Normalization.
