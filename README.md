@@ -97,7 +97,7 @@ python test.py
 - [x] multiscale test
 - [x] achieve the performance mentioned in paper.
 
-Discussion about learning tricks is welcomed (yude.wang@outlook.com).
+Discussion about learning tricks is welcomed (yude.wang at outlook.com).
 
 ## References
 
