@@ -44,7 +44,7 @@ For ResNet backbone, the structure change the dilation of layer4 as [2,2,2].
 
 As for Xception, we keep the same structure with offical tensorflow [code](https://github.com/tensorflow/models/tree/master/research/deeplab) and transform the pretrained parameter file from `.ckpt` to `.pth` manually!
 
-Now ResNet101 and Xception achieve paper performance without multi-scale and flip test and finetuning on VOC2012aug dataset. The models with different setting will be released once paper performance is achieved. You can also finetuning the model by yourself where COCO dataset inferface has already be released. Discussion about finetuning tricks is welcomed by email(yude.wang@outlook.com) or issues!!!
+Now ResNet101 and Xception achieve paper performance without multi-scale and flip test and finetuning on VOC2012aug dataset. The models with different setting will be released once paper performance is achieved. You can also finetuning the model by yourself where COCO dataset inferface has already be released. Discussion about finetuning tricks is welcomed by email(yude.wang at outlook.com) or issues!!!
 
 Here are some pretrained model (46epoch, about 30k iterations) for download, the performance is evaluated on PASCAL VOC 2012 val set. (deeplabv3+ models are trained on multi GPUs, it may cause error when loading by cpu version):
 
