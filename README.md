@@ -1,4 +1,5 @@
 Most recurrent update:
+2021.01.08 - Newest version codebase has released [here](https://github.com/YudeWang/semantic-segmentation-codebase), which releases output_stride=8 deeplabv3+ model.
 
 2019.01.21 - Updata the code for paper performance achieved! Now deeplabv3+res101 achieve 79.155% and deeplabv3+xception achieve 79.945% on PASCAL VOC 2012 val set. The main bug is the missing of `patch_replication_callback()` function of Synchronized Batch Normalization.
 
