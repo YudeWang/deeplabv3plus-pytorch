@@ -10,12 +10,12 @@ import time
 
 class Configuration():
 	def __init__(self):
-		self.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname("__file__"),'..','..'))
+		self.ROOT_DIR = os.path.abspath("/content")
 		self.EXP_NAME = 'deeplabv3+voc'
 
 		self.DATA_NAME = 'VOC2012'
-		self.DATA_AUG = True
-		self.DATA_WORKERS = 8
+		self.DATA_AUG = False
+		self.DATA_WORKERS = 2
 		self.DATA_RESCALE = 512
 		self.DATA_RANDOMCROP = 512
 		self.DATA_RANDOMROTATION = 0
@@ -40,8 +40,8 @@ class Configuration():
 		self.TRAIN_WEIGHT_DECAY = 0.00004
 		self.TRAIN_BN_MOM = 0.0003
 		self.TRAIN_POWER = 0.9
-		self.TRAIN_GPUS = 4
-		self.TRAIN_BATCHES = 16
+		self.TRAIN_GPUS = 1
+		self.TRAIN_BATCHES = 6
 		self.TRAIN_SHUFFLE = True
 		self.TRAIN_MINEPOCH = 0	
 		self.TRAIN_EPOCHS = 46
