@@ -50,15 +50,16 @@ def test_net():
 			col_batched = sample_batched['col']
 
 			[batch, channel, height, width] = sample_batched['image'].size()
-			multi_avg = torch.zeros((batch, cfg.MODEL_NUM_CLASSES, height, width), dtype=torch.float32).to(1)
+			multi_avg = torch.zeros((batch, cfg.MODEL_NUM_CLASSES, height, width), dtype=torch.float32).to(0)
 			for rate in cfg.TEST_MULTISCALE:
 				inputs_batched = sample_batched['image_%f'%rate]
-				predicts = net(inputs_batched).to(1)
+				inputs_batched=inputs_batched.float().to(0)
+				predicts = net(inputs_batched).to(0)
 				predicts_batched = predicts.clone()
 				del predicts
 				if cfg.TEST_FLIP:
 					inputs_batched_flip = torch.flip(inputs_batched,[3]) 
-					predicts_flip = torch.flip(net(inputs_batched_flip),[3]).to(1)
+					predicts_flip = torch.flip(net(inputs_batched_flip),[3]).to(0)
 					predicts_batched_flip = predicts_flip.clone()
 					del predicts_flip
 					predicts_batched = (predicts_batched + predicts_batched_flip) / 2.0
