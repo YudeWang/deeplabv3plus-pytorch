@@ -53,8 +53,8 @@ def train_net():
 	criterion = nn.CrossEntropyLoss(ignore_index=255)
 	optimizer = optim.SGD(
 		params = [
-			{'params': get_params(net.module,key='1x'), 'lr': cfg.TRAIN_LR},
-			{'params': get_params(net.module,key='10x'), 'lr': 10*cfg.TRAIN_LR}
+			{'params': get_params(net,key='1x'), 'lr': cfg.TRAIN_LR},
+			{'params': get_params(net,key='10x'), 'lr': 10*cfg.TRAIN_LR}
 		],
 		momentum=cfg.TRAIN_MOMENTUM
 	)
@@ -71,10 +71,11 @@ def train_net():
 			now_lr = adjust_lr(optimizer, itr, max_itr)
 			inputs_batched, labels_batched = sample_batched['image'], sample_batched['segmentation']
 			optimizer.zero_grad()
-			labels_batched = labels_batched.long().to(1)
+			labels_batched = labels_batched.long().to(0)
 			#0foreground_pix = (torch.sum(labels_batched!=0).float()+1)/(cfg.DATA_RESCALE**2*cfg.TRAIN_BATCHES)
+			inputs_batched = inputs_batched.float().to(0) 
 			predicts_batched = net(inputs_batched)
-			predicts_batched = predicts_batched.to(1) 
+			predicts_batched = predicts_batched.to(0)			
 			loss = criterion(predicts_batched, labels_batched)
 
 			loss.backward()
@@ -88,7 +89,7 @@ def train_net():
 			if cfg.TRAIN_TBLOG and itr%100 == 0:
 				#inputs = np.array((inputs_batched[0]*128+128).numpy().transpose((1,2,0)),dtype=np.uint8)
 				#inputs = inputs_batched.numpy()[0]
-				inputs = inputs_batched.numpy()[0]/2.0 + 0.5
+				inputs = inputs_batched.cpu().numpy()[0]/2.0 + 0.5
 				labels = labels_batched[0].cpu().numpy()
 				labels_color = dataset.label2colormap(labels).transpose((2,0,1))
 				predicts = torch.argmax(predicts_batched[0],dim=0).cpu().numpy()
