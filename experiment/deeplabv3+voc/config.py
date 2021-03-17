@@ -28,7 +28,7 @@ class Configuration():
 		self.MODEL_NAME = 'deeplabv3plus'
 		self.MODEL_BACKBONE = 'res101_atrous'
 		self.MODEL_OUTPUT_STRIDE = 16
-		self.MODEL_ASPP_OUTDIM = 256  #单个ASPP分支的输出DIM
+		self.MODEL_ASPP_OUTDIM = 256  #5个ASPP分支concat后压缩到MODEL_ASPP_OUTDIM
 		self.MODEL_SHORTCUT_DIM = 48
 		self.MODEL_SHORTCUT_KERNEL = 1
 		self.MODEL_NUM_CLASSES = 21
