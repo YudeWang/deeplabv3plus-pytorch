@@ -41,7 +41,7 @@ class Configuration():
 		self.TRAIN_BN_MOM = 0.0003
 		self.TRAIN_POWER = 0.9
 		self.TRAIN_GPUS = 1
-		self.TRAIN_BATCHES = 6
+		self.TRAIN_BATCHES = 14
 		self.TRAIN_SHUFFLE = True
 		self.TRAIN_MINEPOCH = 0	
 		self.TRAIN_EPOCHS = 46
@@ -54,7 +54,7 @@ class Configuration():
 		self.TEST_MULTISCALE = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
 		self.TEST_FLIP = True
 		self.TEST_CKPT = os.path.join(self.ROOT_DIR,'model/deeplabv3+voc/deeplabv3plus_res101_atrous_VOC2012_epoch46_all.pth')
-		self.TEST_GPUS = 4
+		self.TEST_GPUS = 1
 		self.TEST_BATCHES = 16		
 
 		self.__check()
