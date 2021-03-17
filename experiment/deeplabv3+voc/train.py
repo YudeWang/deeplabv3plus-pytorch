@@ -102,6 +102,9 @@ def train_net():
 				tblogger.add_image('Input', inputs, itr)
 				tblogger.add_image('Label', labels_color, itr)
 				tblogger.add_image('Output', predicts_color, itr)
+				print('saving to drive')
+				os.system('cp -f /content/model/deeplabv3+voc/* -input /content/drive/MyDrive/deeplabv3_plus/pytorch/YudeWang-deeplabv3plus-pytorch/batch_size14_trainonVOCaug2/pth')
+				os.system('cp -f /content/log/deeplabv3+voc/* -input /content/drive/MyDrive/deeplabv3_plus/pytorch/YudeWang-deeplabv3plus-pytorch/batch_size14_trainonVOCaug2/log')
 			running_loss = 0.0
 			
 			if itr % 5000 == 0:
