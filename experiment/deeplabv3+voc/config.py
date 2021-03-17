@@ -41,7 +41,7 @@ class Configuration():
 		self.TRAIN_BN_MOM = 0.0003
 		self.TRAIN_POWER = 0.9
 		self.TRAIN_GPUS = 1
-		self.TRAIN_BATCHES = 6
+		self.TRAIN_BATCHES = 14
 		self.TRAIN_SHUFFLE = True
 		self.TRAIN_MINEPOCH = 0	
 		self.TRAIN_EPOCHS = 46
