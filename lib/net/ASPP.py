@@ -51,8 +51,8 @@ class ASPP(nn.Module):
 		conv3x3_1 = self.branch2(x)
 		conv3x3_2 = self.branch3(x)
 		conv3x3_3 = self.branch4(x)
-		global_feature = torch.mean(x,2,True)
-		global_feature = torch.mean(global_feature,3,True)
+		global_feature = torch.mean(x,2,True)  #input dim=1*2048*65*65 
+		global_feature = torch.mean(global_feature,3,True)  #output 将第三四维压缩为1
 		global_feature = self.branch5_conv(global_feature)
 		global_feature = self.branch5_bn(global_feature)
 		global_feature = self.branch5_relu(global_feature)
