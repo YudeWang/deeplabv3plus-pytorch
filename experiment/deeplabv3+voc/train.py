@@ -102,16 +102,17 @@ def train_net():
 				tblogger.add_image('Input', inputs, itr)
 				tblogger.add_image('Label', labels_color, itr)
 				tblogger.add_image('Output', predicts_color, itr)
-				print('saving to drive')
-				os.system('cp -f /content/model/deeplabv3+voc/* -input /content/drive/MyDrive/deeplabv3_plus/pytorch/YudeWang-deeplabv3plus-pytorch/batch_size14_trainonVOCaug2/pth')
-				os.system('cp -f /content/log/deeplabv3+voc/* -input /content/drive/MyDrive/deeplabv3_plus/pytorch/YudeWang-deeplabv3plus-pytorch/batch_size14_trainonVOCaug2/log')
+				
 			running_loss = 0.0
 			
 			if itr % 5000 == 0:
 				save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_itr%d.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME,itr))
 				torch.save(net.state_dict(), save_path)
 				print('%s has been saved'%save_path)
-
+       				
+				print('saving to drive')
+				os.system('cp -f /content/model/deeplabv3+voc/*  ')
+				os.system('cp -f /content/log/deeplabv3+voc/*  ')
 			itr += 1
 		
 	save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_epoch%d_all.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME,cfg.TRAIN_EPOCHS))		
