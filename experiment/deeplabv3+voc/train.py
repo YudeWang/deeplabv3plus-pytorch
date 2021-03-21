@@ -19,6 +19,10 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 from net.loss import MaskCrossEntropyLoss, MaskBCELoss, MaskBCEWithLogitsLoss
 from net.sync_batchnorm.replicate import patch_replication_callback
+
+os.system('mkdir -p '+cfg.PTH_LOG_SAVEPATH+'/log/')
+os.system('mkdir -p '+cfg.PTH_LOG_SAVEPATH+'/pth/')
+
 def train_net():
 	dataset = generate_dataset(cfg.DATA_NAME, cfg, 'train', cfg.DATA_AUG)
 	dataloader = DataLoader(dataset, 
@@ -111,8 +115,8 @@ def train_net():
 				print('%s has been saved'%save_path)
        				
 				print('saving to drive')
-				os.system('cp -f /content/model/deeplabv3+voc/*  '+cfg.PTH_LOG_SAVEPATH+'/pth')
-				os.system('cp -f /content/log/deeplabv3+voc/*  '+cfg.PTH_LOG_SAVEPATH+'/log')
+				os.system('cp -f /content/model/deeplabv3+voc/*  '+cfg.PTH_LOG_SAVEPATH+'/pth/')
+				os.system('cp -f /content/log/deeplabv3+voc/*  '+cfg.PTH_LOG_SAVEPATH+'/log/')
 				os.system('cp -f /content/mylog '+cfg.PTH_LOG_SAVEPATH+'/')
 			itr += 1
 		
