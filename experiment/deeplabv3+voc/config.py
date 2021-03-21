@@ -10,11 +10,18 @@ import time
 
 class Configuration():
 	def __init__(self):
+		
+		self.DATA_AUG = False		
+		self.MODEL_SHORTCUT_DIM = 64		
+		self.TRAIN_BATCHES = 14		
+		self.TRAIN_EPOCHS = 46		
+		self.PTH_LOG_SAVEPATH=""
+		
+		
 		self.ROOT_DIR = os.path.abspath("/content")
 		self.EXP_NAME = 'deeplabv3+voc'
 
 		self.DATA_NAME = 'VOC2012'
-		self.DATA_AUG = False
 		self.DATA_WORKERS = 2
 		self.DATA_RESCALE = 512
 		self.DATA_RANDOMCROP = 512
@@ -29,7 +36,7 @@ class Configuration():
 		self.MODEL_BACKBONE = 'res101_atrous'
 		self.MODEL_OUTPUT_STRIDE = 16
 		self.MODEL_ASPP_OUTDIM = 256  #5个ASPP分支concat后压缩到MODEL_ASPP_OUTDIM
-		self.MODEL_SHORTCUT_DIM = 64  #根据bisenet 将细节分支的channel增大
+
 		self.MODEL_SHORTCUT_KERNEL = 1
 		self.MODEL_NUM_CLASSES = 21
 		self.MODEL_SAVE_DIR = os.path.join(self.ROOT_DIR,'model',self.EXP_NAME)
@@ -41,10 +48,9 @@ class Configuration():
 		self.TRAIN_BN_MOM = 0.0003
 		self.TRAIN_POWER = 0.9
 		self.TRAIN_GPUS = 1
-		self.TRAIN_BATCHES = 14
+
 		self.TRAIN_SHUFFLE = True
 		self.TRAIN_MINEPOCH = 0	
-		self.TRAIN_EPOCHS = 46
 		self.TRAIN_LOSS_LAMBDA = 0
 		self.TRAIN_TBLOG = True
 		self.TRAIN_CKPT = None#os.path.join(self.ROOT_DIR,'model/deeplabv3+voc/deeplabv3plus_xception_VOC2012_itr0.pth')
