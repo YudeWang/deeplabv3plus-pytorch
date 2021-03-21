@@ -111,9 +111,9 @@ def train_net():
 				print('%s has been saved'%save_path)
        				
 				print('saving to drive')
-				os.system('cp -f /content/model/deeplabv3+voc/*  ')
-				os.system('cp -f /content/log/deeplabv3+voc/*  ')
-				os.system('cp -f /content/mylog ')
+				os.system('cp -f /content/model/deeplabv3+voc/*  '+cfg.PTH_LOG_SAVEPATH+'/pth')
+				os.system('cp -f /content/log/deeplabv3+voc/*  '+cfg.PTH_LOG_SAVEPATH+'/log')
+				os.system('cp -f /content/mylog '+cfg.PTH_LOG_SAVEPATH)
 			itr += 1
 		
 	save_path = os.path.join(cfg.MODEL_SAVE_DIR,'%s_%s_%s_epoch%d_all.pth'%(cfg.MODEL_NAME,cfg.MODEL_BACKBONE,cfg.DATA_NAME,cfg.TRAIN_EPOCHS))		
