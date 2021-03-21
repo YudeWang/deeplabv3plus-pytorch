@@ -29,7 +29,7 @@ class Configuration():
 		self.MODEL_BACKBONE = 'res101_atrous'
 		self.MODEL_OUTPUT_STRIDE = 16
 		self.MODEL_ASPP_OUTDIM = 256  #5个ASPP分支concat后压缩到MODEL_ASPP_OUTDIM
-		self.MODEL_SHORTCUT_DIM = 48
+		self.MODEL_SHORTCUT_DIM = 64  #根据bisenet 将细节分支的channel增大
 		self.MODEL_SHORTCUT_KERNEL = 1
 		self.MODEL_NUM_CLASSES = 21
 		self.MODEL_SAVE_DIR = os.path.join(self.ROOT_DIR,'model',self.EXP_NAME)

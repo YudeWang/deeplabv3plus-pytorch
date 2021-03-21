@@ -10,6 +10,7 @@ from net.sync_batchnorm import SynchronizedBatchNorm2d
 from torch.nn import init
 from net.backbone import build_backbone
 from net.ASPP import ASPP
+from net.myaspp import myaspp
 
 class deeplabv3plus(nn.Module):
 	def __init__(self, cfg):
@@ -24,8 +25,11 @@ class deeplabv3plus(nn.Module):
 		self.dropout1 = nn.Dropout(0.5)
 		self.upsample4 = nn.UpsamplingBilinear2d(scale_factor=4)
 		self.upsample_sub = nn.UpsamplingBilinear2d(scale_factor=cfg.MODEL_OUTPUT_STRIDE//4)
-
+		
 		indim = 256
+		self.myaspp=myaspp(indim,cfg.MODEL_SHORTCUT_DIM)
+
+		
 		self.shortcut_conv = nn.Sequential(
 				nn.Conv2d(indim, cfg.MODEL_SHORTCUT_DIM, cfg.MODEL_SHORTCUT_KERNEL, 1, padding=cfg.MODEL_SHORTCUT_KERNEL//2,bias=True),
 				SynchronizedBatchNorm2d(cfg.MODEL_SHORTCUT_DIM, momentum=cfg.TRAIN_BN_MOM),
@@ -58,7 +62,9 @@ class deeplabv3plus(nn.Module):
 		feature_aspp = self.dropout1(feature_aspp)
 		feature_aspp = self.upsample_sub(feature_aspp)
 
-		feature_shallow = self.shortcut_conv(layers[0])
+		#feature_shallow = self.shortcut_conv(layers[0])
+		feature_shallow=self.myaspp(layers[0])
+		
 		feature_cat = torch.cat([feature_aspp,feature_shallow],1)
 		result = self.cat_conv(feature_cat) 
 		result = self.cls_conv(result)
