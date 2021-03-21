@@ -125,6 +125,9 @@ def train_net():
 	if cfg.TRAIN_TBLOG:
 		tblogger.close()
 	print('%s has been saved'%save_path)
+	os.system('cp -f /content/model/deeplabv3+voc/*  '+cfg.PTH_LOG_SAVEPATH+'/pth/')
+	os.system('cp -f /content/log/deeplabv3+voc/*  '+cfg.PTH_LOG_SAVEPATH+'/log/')
+	os.system('cp -f /content/mylog '+cfg.PTH_LOG_SAVEPATH+'/')
 
 def adjust_lr(optimizer, itr, max_itr):
 	now_lr = cfg.TRAIN_LR * (1 - itr/(max_itr+1)) ** cfg.TRAIN_POWER
