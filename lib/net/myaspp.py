@@ -37,7 +37,7 @@ class myaspp(nn.Module):
 		#self.branch5_bn = SynchronizedBatchNorm2d(dim_out, momentum=bn_mom)
 		#self.branch5_relu = nn.ReLU(inplace=True)
 		self.conv_cat = nn.Sequential(
-				nn.Conv2d(dim_out*4, dim_out, 3,3, padding=1,bias=True),  #使用3*3卷积降维 学习提取轮廓特征  
+				nn.Conv2d(dim_out*4, dim_out, 3,1, padding=1,bias=True),  #使用3*3卷积降维 学习提取轮廓特征  
 				SynchronizedBatchNorm2d(dim_out, momentum=bn_mom),        #需要更改dim_out=MODEL_SHORTCUT_DIM
 				nn.ReLU(inplace=True),		
 		)
