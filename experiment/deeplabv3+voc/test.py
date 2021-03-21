@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torchvision
 import numpy as np
 import cv2
-
+from tensorboardX import SummaryWriter
 from config import cfg
 from datasets.generateData import generate_dataset
 from net.generateNet import generate_net
@@ -17,7 +17,9 @@ from net.sync_batchnorm.replicate import patch_replication_callback
 
 from torch.utils.data import DataLoader
 
+tblogger = SummaryWriter(cfg.LOG_DIR+'/output/')
 def test_net():
+	flag=0
 	dataset = generate_dataset(cfg.DATA_NAME, cfg, 'val')
 	dataloader = DataLoader(dataset, 
 				batch_size=cfg.TEST_BATCHES, 
@@ -69,8 +71,15 @@ def test_net():
 				del predicts_batched
 			
 			multi_avg = multi_avg / len(cfg.TEST_MULTISCALE)
+			#print(multi_avg.size())
 			result = torch.argmax(multi_avg, dim=1).cpu().numpy().astype(np.uint8)
-
+			result_color=np.zeros(shape=(batch,3,result.shape[-1],result.shape[-1]))
+			#print(result[0].shape)
+			for i in range(batch):
+				result_color[i]=dataset.label2colormap(result[i]).transpose((2,0,1))
+				tblogger.add_image('Output', result_color[i], flag)
+				flag=flag+1
+			
 			for i in range(batch):
 				row = row_batched[i]
 				col = col_batched[i]
@@ -79,7 +88,7 @@ def test_net():
 			#	new_row = row*rate
 			#	new_col = col*rate
 			#	s_row = (cfg.DATA_RESCALE-new_row)//2
-			#	s_col = (cfg.DATA_RESCALE-new_col)//2
+			
 	 
 			#	p = predicts_batched[i, s_row:s_row+new_row, s_col:s_col+new_col]
 				p = result[i,:,:]
