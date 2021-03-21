@@ -18,7 +18,7 @@ class ASPP(nn.Module):
 				nn.ReLU(inplace=True),
 		)
 		self.branch2 = nn.Sequential(
-				nn.Conv2d(dim_in, dim_out, 3, 1, padding=6*rate, dilation=6*rate,bias=True),
+				nn.Conv2d(dim_in, dim_out, 3, 1, padding=6*rate, dilation=6*rate,bias=True),   #使用的是输出大小不变的空洞卷积
 				SynchronizedBatchNorm2d(dim_out, momentum=bn_mom),
 				nn.ReLU(inplace=True),	
 		)
